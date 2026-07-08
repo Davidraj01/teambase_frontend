@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 const API = import.meta.env.VITE_API_URL || "https://skiez-campus-backend.onrender.com/api";
 
 const TEAMS = [
+  { id: "md",      name: "Managing Director",  icon: "👑", color: "#f59e0b" },
   { id: "uiux",   name: "UI/UX Design",       icon: "🎨", color: "#ec4899" },
   { id: "python", name: "Python Developers",   icon: "🐍", color: "#3b82f6" },
   { id: "flutter", name: "Flutter Developers",  icon: "🦋", color: "#06b6d4" },
