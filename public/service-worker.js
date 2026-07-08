@@ -43,17 +43,27 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = event.notification.data && event.notification.data.url ? event.notification.data.url : '/';
 
+  const openClient = async (client) => {
+    if ('focus' in client) client.focus();
+    if ('navigate' in client) {
+      await client.navigate(url);
+    }
+    client.postMessage({ type: 'PUSH_NOTIFICATION_CLICK', url });
+  };
+
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windowClients) => {
       for (const client of windowClients) {
         const clientUrl = new URL(client.url);
         if (clientUrl.origin === self.location.origin && 'focus' in client) {
-          client.focus();
-          if ('navigate' in client) client.navigate(url);
+          await openClient(client);
           return;
         }
       }
-      if (self.clients.openWindow) return self.clients.openWindow(url);
+      if (self.clients.openWindow) {
+        const newClient = await self.clients.openWindow(url);
+        if (newClient) await openClient(newClient);
+      }
     })
   );
 });

@@ -681,6 +681,26 @@ export default function App() {
     if (!showNotifs) loadNotifications();
   };
 
+  const applyNotificationIntent = useCallback((targetUrl) => {
+    if (typeof window === 'undefined' || !targetUrl) return;
+    try {
+      const url = new URL(targetUrl, window.location.origin);
+      const view = url.searchParams.get('view');
+      const teamId = url.searchParams.get('teamId');
+      const shouldOpenNotifications = url.searchParams.get('openNotifications') === '1' || url.searchParams.get('openNotifications') === 'true';
+
+      if (view === 'chat' || view === 'tasks') {
+        setTab(view);
+        if (teamId) setActiveTeam(teamId);
+      }
+      if (shouldOpenNotifications) {
+        setShowNotifs(true);
+      }
+    } catch (e) {
+      console.error('Failed to apply notification target', e);
+    }
+  }, []);
+
   const loadNotifications = useCallback(async () => {
     try {
       const n = await apiFetch('/notifications', {}, token);
@@ -701,6 +721,7 @@ export default function App() {
   // session without needing another click on the bell icon.
   useEffect(() => {
     if (!token || !user) return;
+    applyNotificationIntent(window.location.href);
     let cancelled = false;
     (async () => {
       const reg = await registerServiceWorker();
@@ -712,7 +733,7 @@ export default function App() {
       }
     })();
     return () => { cancelled = true; };
-  }, [token, user, registerServiceWorker, ensurePushSubscription]);
+  }, [token, user, registerServiceWorker, ensurePushSubscription, applyNotificationIntent]);
 
   // If the browser silently rotates the push subscription in the background,
   // the service worker posts us the new one so we can save it right away.
@@ -722,6 +743,9 @@ export default function App() {
       if (event.data?.type === 'PUSH_SUBSCRIPTION_CHANGED' && event.data.subscription) {
         apiFetch('/push/subscribe', { method: 'POST', body: JSON.stringify(event.data.subscription) }, token)
           .catch((e) => console.error('Failed to save rotated push subscription', e));
+      }
+      if (event.data?.type === 'PUSH_NOTIFICATION_CLICK' && event.data.url) {
+        applyNotificationIntent(event.data.url);
       }
     };
     navigator.serviceWorker.addEventListener('message', onMessage);
